@@ -10,6 +10,8 @@
 const axios = require('axios');
 require('dotenv').config();
 const fs = require('fs');
+const path = require('path');
+const parseString = require('xml2js').parseString;
 
 if (!fs.existsSync('data')) {
     fs.mkdirSync('data');
@@ -17,7 +19,6 @@ if (!fs.existsSync('data')) {
 
 const PAGE_URL = 'https://tai-studio.netlify.app';
 const device = 'desktop'; // mobile or desktop
-const API = '';
 
 if (process.env.WORKFLOW_INPUT != null) {
     var tmp = JSON.parse(process.env.WORKFLOW_INPUT);
@@ -28,26 +29,60 @@ if (process.env.WORKFLOW_INPUT != null) {
     console.log('Run With Github Action !');
 }
 
-axios.get(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${PAGE_URL}&strategy=${device}`)
-    .then(function (response) {
-        fs.writeFileSync('./data/get.txt', JSON.stringify(response.data, null, 2));
-    })
-    .catch(function (error) {
-        console.log('Error get');
-        console.log(error);
-    });
+init();
+async function init() {
+    var urls = await getSitemapLinks(`${PAGE_URL}/sitemap.xml`);
+    urls.forEach((val, index) => {
+        var current = val.split('/');
+            current = current.pop();
 
-axios.post(`https://chromeuxreport.googleapis.com/v1/records:queryRecord?key=${API}`, {
-    url: PAGE_URL
-}, {
-    headers: {
-        'Content-Type': 'application/json'
-    }
-})
-    .then(function (response) {
-        fs.writeFileSync('./data/post.txt', JSON.stringify(response.data, null, 2));
-    })
-    .catch(function (error) {
-        console.log(error);
-        fs.writeFileSync('./data/post.txt', JSON.stringify(error, null, 2));
+            current = val.replace('http://', '');
+            current = current.replace('https://', '');
+        createDirectory(`./data/${current}`);
+
+        setTimeout(() => {
+            axios.get(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${val}&strategy=${device}`)
+                .then(function (response) {
+                    if(current == ''){
+                        current = 'index';
+                    }
+                    fs.writeFileSync(`./data/${current}.txt`, JSON.stringify(response.data, null, 2));
+                })
+                .catch(function (error) {
+                    console.log('Error get');
+                    console.log(error);
+                });
+        }, index * 10000);
     });
+}
+
+function createDirectory(folderPath) {
+    const normalizedPath = path.normalize(folderPath);
+
+    if (!fs.existsSync(normalizedPath)) {
+        fs.mkdirSync(normalizedPath, { recursive: true });
+        console.log(`Created directory: ${normalizedPath}`);
+    } else {
+        console.log(`Directory already exists: ${normalizedPath}`);
+    }
+}
+
+async function getSitemapLinks(url) {
+    try {
+        const response = await axios.get(url);
+        const xml = response.data;
+        let links = [];
+
+        parseString(xml, function (err, result) {
+            if (err) {
+                console.log(err);
+            } else {
+                links = result.urlset.url.map(url => url.loc[0]);
+            }
+        });
+
+        return links;
+    } catch (error) {
+        console.log(error);
+    }
+}
