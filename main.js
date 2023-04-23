@@ -40,7 +40,7 @@ async function init() {
         current = current.replace('https://', '');
         createDirectory(`./data/${current}`);
 
-        await new Promise(resolve => setTimeout(resolve, 65000));
+        await new Promise(resolve => setTimeout(resolve, 95000));
         axios.get(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${val}&strategy=${device}`)
             .then(function (response) {
                 if (current == '') {
