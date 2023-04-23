@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@main
       - uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '17'
       - run: sudo apt update
       - run: sudo apt upgrade
       - run: npm install
@@ -33,4 +33,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: speed
-          path: speed.txt
+          path: data/
