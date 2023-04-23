@@ -55,10 +55,11 @@ async function init() {
                 console.log('Error get');
                 if(error.response.data != null){
                     console.log(error.response.data);
+                    fs.writeFileSync(`./data/${current}_ERROR.txt`, JSON.stringify(error.response.data, null, 2));
                 }
                 else{
                     console.log(error);
-                    fs.writeFileSync(`./data/${current}_ERROR.txt`, JSON.stringify(response.data, null, 2));
+                    fs.writeFileSync(`./data/${current}_ERROR.txt`, JSON.stringify(error, null, 2));
                 }
             });
     }
