@@ -58,6 +58,7 @@ async function init() {
                 }
                 else{
                     console.log(error);
+                    fs.writeFileSync(`./data/${current}_ERROR.txt`, JSON.stringify(response.data, null, 2));
                 }
             });
     }
