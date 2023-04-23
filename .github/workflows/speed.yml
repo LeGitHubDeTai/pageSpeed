@@ -5,10 +5,15 @@ on:
         description: "What Website Screen ?"
         required: true
         default: "https://tai-studio.netlify.app/"
-      width:
+      device:
+        type: 'choice'
         description: "What device test ? (desktop/mobile)"
         required: true
         default: "desktop"
+        options:
+        - desktop
+        - mobile
+
 name: Page Speed
 jobs:
   render:
@@ -22,7 +27,7 @@ jobs:
       - run: sudo apt update
       - run: sudo apt upgrade
       - run: npm install
-      - run: npm run speed -- --props="$WORKFLOW_INPUT"
+      - run: npm run speed -- --props="$WORKFLOW_INPUT" --device="${{ github.event.inputs.device }}"
         env:
           WORKFLOW_INPUT: ${{ toJson(github.event.inputs) }}
       - uses: actions/upload-artifact@v2

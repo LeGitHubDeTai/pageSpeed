@@ -1,12 +1,12 @@
-/*-------------------------------------------------------------------------------------------------------------\
-|  _______    _    _____ _             _ _           ________     ___   ___ ___  __     _____   ___ ___  ___   |
-| |__   __|  (_)  / ____| |           | (_)         /  ____  \   |__ \ / _ \__ \/_ |   / /__ \ / _ \__ \|__ \  |
-|    | | __ _ _  | (___ | |_ _   _  __| |_  ___    /  / ___|  \     ) | | | | ) || |  / /   ) | | | | ) |  ) | |
-|    | |/ _` | |  \___ \| __| | | |/ _` | |/ _ \  |  | |       |   / /| | | |/ / | | / /   / /| | | |/ /  / /  |
-|    | | (_| | |  ____) | |_| |_| | (_| | | (_) | |  | |___    |  / /_| |_| / /_ | |/ /   / /_| |_| / /_ / /_  |
-|    |_|\__,_|_| |_____/ \__|\__,_|\__,_|_|\___/   \  \____|  /  |____|\___/____||_/_/   |____|\___/____|____| |
-|                                                   \________/                                                 |
-\-------------------------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------------------\
+|  _____     _   _____ _             _ _          _____  _____  _____  __      _______  _____  _____  _____  |
+| |_   _|   (_) /  ___| |           | (_)        / __  \|  _  |/ __  \/  |    / / __  \|  _  |/ __  \|____ | |
+|   | | __ _ _  \ `--.| |_ _   _  __| |_  ___    `' / /'| |/' |`' / /'`| |   / /`' / /'| |/' |`' / /'    / / |
+|   | |/ _` | |  `--. \ __| | | |/ _` | |/ _ \     / /  |  /| |  / /   | |  / /   / /  |  /| |  / /      \ \ |
+|   | | (_| | | /\__/ / |_| |_| | (_| | | (_) |  ./ /___\ |_/ /./ /____| |_/ /  ./ /___\ |_/ /./ /___.___/ / |
+|   \_/\__,_|_| \____/ \__|\__,_|\__,_|_|\___/   \_____/ \___/ \_____/\___/_/   \_____/ \___/ \_____/\____/  |
+\-----------------------------------------------------------------------------------------------------------*/
+
 const axios = require('axios');
 require('dotenv').config();
 const fs = require('fs');
@@ -17,43 +17,52 @@ if (!fs.existsSync('data')) {
     fs.mkdirSync('data');
 }
 
-const PAGE_URL = 'https://tai-studio.netlify.app';
-const device = 'desktop'; // mobile or desktop
+var PAGE_URL = 'https://tai-studio.netlify.app';
+var device = 'desktop'; // mobile or desktop
 
 if (process.env.WORKFLOW_INPUT != null) {
     var tmp = JSON.parse(process.env.WORKFLOW_INPUT);
-    process.env.websiteURL = tmp.websiteURL;
-    process.env.width = tmp.width;
-    process.env.height = tmp.height;
 
+    PAGE_URL = tmp.websiteURL;
+    device = tmp.device;
     console.log('Run With Github Action !');
 }
 
 init();
 async function init() {
     var urls = await getSitemapLinks(`${PAGE_URL}/sitemap.xml`);
-    urls.forEach((val, index) => {
+    for (let i = 0; i < urls.length; i++) {
+        const val = urls[i];
         var current = val.split('/');
-            current = current.pop();
+        current = current.pop();
 
-            current = val.replace('http://', '');
-            current = current.replace('https://', '');
+        current = val.replace('http://', '');
+        current = current.replace('https://', '');
         createDirectory(`./data/${current}`);
 
-        setTimeout(() => {
-            axios.get(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${val}&strategy=${device}`)
-                .then(function (response) {
-                    if(current == ''){
-                        current = 'index';
-                    }
-                    fs.writeFileSync(`./data/${current}.txt`, JSON.stringify(response.data, null, 2));
-                })
-                .catch(function (error) {
-                    console.log('Error get');
+        await new Promise(resolve => setTimeout(resolve, 35000));
+        axios.get(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${val}&strategy=${device}`)
+            .then(function (response) {
+                if (current == '') {
+                    current = 'index';
+                }
+                if (current == null) {
+                    current = 'index';
+                }
+                fs.writeFileSync(`./data/${current}.txt`, JSON.stringify(response.data, null, 2));
+            })
+            .catch(function (error) {
+                console.log('Error get');
+                if(error.response.data != null){
+                    console.log(error.response.data);
+                }
+                else{
                     console.log(error);
-                });
-        }, index * 10000);
-    });
+                }
+            });
+    }
+
+    deleteEmptyFoldersRecursively('./data');
 }
 
 function createDirectory(folderPath) {
@@ -64,6 +73,32 @@ function createDirectory(folderPath) {
         console.log(`Created directory: ${normalizedPath}`);
     } else {
         console.log(`Directory already exists: ${normalizedPath}`);
+    }
+}
+
+function deleteEmptyFoldersRecursively(folderPath) {
+    if (!fs.existsSync(folderPath)) {
+        return;
+    }
+
+    const files = fs.readdirSync(folderPath);
+    if (files.length > 0) {
+        files.forEach(function (file) {
+            const fullPath = folderPath + '/' + file;
+            if (fs.statSync(fullPath).isDirectory()) {
+                deleteEmptyFoldersRecursively(fullPath);
+            }
+        });
+
+        // Re-check the folder after deleting the files
+        const filesAfterDeletion = fs.readdirSync(folderPath);
+        if (filesAfterDeletion.length === 0) {
+            fs.rmdirSync(folderPath);
+            console.log(`Deleted empty folder: ${folderPath}`);
+        }
+    } else {
+        fs.rmdirSync(folderPath);
+        console.log(`Deleted empty folder: ${folderPath}`);
     }
 }
 
