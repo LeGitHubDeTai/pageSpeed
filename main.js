@@ -31,6 +31,7 @@ if (process.env.WORKFLOW_INPUT != null) {
 init();
 async function init() {
     var urls = await getSitemapLinks(`${PAGE_URL}/sitemap.xml`);
+        urls = removeDuplicates(urls);
     for (let i = 0; i < urls.length; i++) {
         const val = urls[i];
         var current = val.split('/');
@@ -49,17 +50,17 @@ async function init() {
                 if (current == null) {
                     current = 'index';
                 }
-                fs.writeFileSync(`./data/${current}.txt`, JSON.stringify(response.data, null, 2));
+                fs.writeFileSync(`./data/${current}.json`, JSON.stringify(response.data, null, 2));
             })
             .catch(function (error) {
                 console.log('Error get');
-                if(error.response.data != null){
+                if (error.response.data != null) {
                     console.log(error.response.data);
-                    fs.writeFileSync(`./data/${current}_ERROR.txt`, JSON.stringify(error.response.data, null, 2));
+                    fs.writeFileSync(`./data/${current}_ERROR.json`, JSON.stringify(error.response.data, null, 2));
                 }
-                else{
+                else {
                     console.log(error);
-                    fs.writeFileSync(`./data/${current}_ERROR.txt`, JSON.stringify(error, null, 2));
+                    fs.writeFileSync(`./data/${current}_ERROR.json`, JSON.stringify(error, null, 2));
                 }
             });
     }
@@ -122,4 +123,8 @@ async function getSitemapLinks(url) {
     } catch (error) {
         console.log(error);
     }
+}
+
+function removeDuplicates(array) {
+    return [...new Set(array)];
 }
