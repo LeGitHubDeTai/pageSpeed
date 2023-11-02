@@ -12,12 +12,32 @@ const fs = require('fs');
 const path = require('path');
 const parseString = require('xml2js').parseString;
 
+// Récupérer les arguments de la ligne de commande
+const args = process.argv.slice(2);
+
+// Créer un objet pour stocker les arguments
+const arguments = {};
+
+// Parcourir les arguments de la ligne de commande
+args.forEach((arg) => {
+    // Vérifier si l'argument commence par "--"
+    if (arg.startsWith("--")) {
+        // Diviser l'argument en nom et en valeur en utilisant le "=" comme séparateur
+        const parts = arg.split("=");
+        if (parts.length === 2) {
+            const key = parts[0].substring(2); // Supprimer le "--"
+            const value = parts[1];
+            arguments[key] = value;
+        }
+    }
+});
+
 if (!fs.existsSync('data')) {
     fs.mkdirSync('data');
 }
 
-var PAGE_URL = 'https://tai-studio.netlify.app';
-var device = 'desktop'; // mobile or desktop
+var PAGE_URL = arguments.site || 'https://taistudio.fr';
+var device = arguments.device || 'desktop'; // mobile or desktop
 
 if (process.env.WORKFLOW_INPUT != null) {
     var tmp = JSON.parse(process.env.WORKFLOW_INPUT);
@@ -38,6 +58,12 @@ async function init() {
 
         current = val.replace('http://', '');
         current = current.replace('https://', '');
+
+        if(val.includes('.js')){
+            console.log(val, "is not html");
+            return;
+        }
+
         createDirectory(`./data/${current}`);
 
         await new Promise(resolve => setTimeout(resolve, 95000));
